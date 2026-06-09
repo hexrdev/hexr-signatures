@@ -1,0 +1,86 @@
+schema_version: "1.0"
+kind: framework
+id: openai-agents
+display_name: "OpenAI Agents SDK"
+homepage: https://openai.github.io/openai-agents-python/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: agents
+      weight: 0.4
+    - module: agents.run
+      weight: 0.2
+    - module: agents.tool
+      weight: 0.2
+    - module: agents.handoffs
+      weight: 0.2
+  symbol_patterns:
+    - kind: class_instantiation
+      class: agents.Agent
+      weight: 0.35
+    - kind: class_instantiation
+      class: agents.Runner
+      weight: 0.2
+    - kind: function_call
+      name: agents.Runner.run
+      weight: 0.15
+    - kind: function_call
+      name: agents.Runner.run_sync
+      weight: 0.15
+    - kind: function_call
+      name: agents.handoff
+      weight: 0.15
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: agents.Agent
+      capture:
+        name: "{kwarg('name')}"
+        model: "{kwarg('model')}"
+  tool:
+    - kind: decorator
+      name: agents.function_tool
+      target: function
+    - kind: decorator
+      name: agents.tool.function_tool
+      target: function
+  llm_client:
+    - kind: kwarg_value
+      class: agents.Agent
+      kwarg: model
+      capture:
+        provider: openai
+        model: "{kwarg('model')}"
+  orchestrator:
+    - kind: function_call
+      name: agents.handoff
+      capture:
+        name: "handoff"
+
+  # PR-D1: call-classification idioms. Runner.run / Runner.run_sync are
+  # treated as agent_spawn calls because each invocation kicks off an agent
+  # execution loop (mirrors legacy AGENT_SPAWN_HINTS for `Runner.run`).
+  agent_spawn:
+    - kind: class_instantiation
+      class: agents.Agent
+    - kind: function_call
+      name: agents.Runner.run
+    - kind: function_call
+      name: agents.Runner.run_sync
+    - kind: function_call
+      name: agents.handoff
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+  - on: tool
+    decorator: "@hexr_tool"
+    code: HXR102
+
+adapter:
+  module: hexr.frameworks.openai_agents
+  wrap_fn: wrap_agent

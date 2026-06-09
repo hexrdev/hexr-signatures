@@ -1,0 +1,71 @@
+schema_version: "1.0"
+kind: framework
+id: strands
+display_name: "Strands Agents SDK"
+homepage: https://strandsagents.com/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: strands
+      weight: 0.5
+    - module: strands_tools
+      weight: 0.3
+    - module: strands.models
+      weight: 0.2
+  symbol_patterns:
+    - kind: class_instantiation
+      class: strands.Agent
+      weight: 0.4
+    - kind: class_instantiation
+      class: strands.models.BedrockModel
+      weight: 0.2
+    - kind: class_instantiation
+      class: strands.models.AnthropicModel
+      weight: 0.2
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: strands.Agent
+      capture:
+        name: "{kwarg('name')}"
+        model: "{kwarg('model')}"
+  tool:
+    - kind: decorator
+      name: strands.tool
+      target: function
+    - kind: decorator
+      name: strands.tools.tool
+      target: function
+  llm_client:
+    - kind: class_instantiation
+      class: strands.models.BedrockModel
+      capture:
+        provider: bedrock
+        model: "{kwarg('model_id')}"
+    - kind: class_instantiation
+      class: strands.models.AnthropicModel
+      capture:
+        provider: anthropic
+        model: "{kwarg('model_id')}"
+    - kind: class_instantiation
+      class: strands.models.OpenAIModel
+      capture:
+        provider: openai
+        model: "{kwarg('model_id')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: strands.Agent
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.strands
+  wrap_fn: wrap_agent

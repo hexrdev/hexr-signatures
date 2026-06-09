@@ -1,0 +1,76 @@
+schema_version: "1.0"
+kind: framework
+id: claude-agent-sdk
+display_name: "Anthropic Claude Agent SDK"
+homepage: https://docs.claude.com/en/api/agent-sdk/overview
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: claude_agent_sdk
+      weight: 0.5
+    - module: anthropic
+      weight: 0.2
+  symbol_patterns:
+    - kind: function_call
+      name: claude_agent_sdk.query
+      weight: 0.3
+    - kind: class_instantiation
+      class: claude_agent_sdk.ClaudeSDKClient
+      weight: 0.3
+    - kind: class_instantiation
+      class: claude_agent_sdk.ClaudeAgentOptions
+      weight: 0.2
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: claude_agent_sdk.ClaudeSDKClient
+      capture:
+        name: "claude_agent"
+    - kind: function_call
+      name: claude_agent_sdk.query
+      capture:
+        name: "claude_query"
+  tool:
+    - kind: decorator
+      name: claude_agent_sdk.tool
+      target: function
+    - kind: decorator
+      name: claude_agent_sdk.tools.tool
+      target: function
+  llm_client:
+    - kind: class_instantiation
+      class: anthropic.Anthropic
+      capture:
+        provider: anthropic
+        model: "{kwarg('model')}"
+    - kind: class_instantiation
+      class: anthropic.AsyncAnthropic
+      capture:
+        provider: anthropic
+        model: "{kwarg('model')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: claude_agent_sdk.ClaudeSDKClient
+  llm_call:
+    - kind: function_call
+      name: claude_agent_sdk.query
+    # PR-D2: receiver-typed methods on the Anthropic clients used inside
+    # claude-agent-sdk callbacks.
+    - kind: function_call
+      name: anthropic.Anthropic.messages.create
+    - kind: function_call
+      name: anthropic.AsyncAnthropic.messages.create
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.claude_agent
+  wrap_fn: wrap_client

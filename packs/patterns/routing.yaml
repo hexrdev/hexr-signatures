@@ -1,0 +1,16 @@
+# Pattern: Routing
+# One LLM call whose result selects one of N branches via if/elif/match.
+schema_version: "1.0"
+kind: pattern
+id: routing
+display_name: "Routing"
+homepage: https://www.anthropic.com/research/building-effective-agents
+maintainer: hexr
+version: "1.0.0"
+
+match:
+  min_llm_calls_per_function: 1
+  has_branch_on_llm: true
+  min_branches: 2
+
+confidence: 0.75

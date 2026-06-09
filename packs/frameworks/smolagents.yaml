@@ -1,0 +1,72 @@
+schema_version: "1.0"
+kind: framework
+id: smolagents
+display_name: "Hugging Face smolagents"
+homepage: https://huggingface.co/docs/smolagents/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: smolagents
+      weight: 0.5
+    - module: smolagents.agents
+      weight: 0.3
+    - module: smolagents.tools
+      weight: 0.2
+  symbol_patterns:
+    - kind: class_instantiation
+      class: smolagents.CodeAgent
+      weight: 0.3
+    - kind: class_instantiation
+      class: smolagents.ToolCallingAgent
+      weight: 0.3
+    - kind: class_instantiation
+      class: smolagents.MultiStepAgent
+      weight: 0.2
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: smolagents.CodeAgent
+      capture:
+        name: "code_agent"
+    - kind: class_instantiation
+      class: smolagents.ToolCallingAgent
+      capture:
+        name: "tool_calling_agent"
+  tool:
+    - kind: decorator
+      name: smolagents.tool
+      target: function
+    - kind: class_instantiation
+      class: smolagents.Tool
+  llm_client:
+    - kind: class_instantiation
+      class: smolagents.HfApiModel
+      capture:
+        provider: huggingface
+        model: "{kwarg('model_id')}"
+    - kind: class_instantiation
+      class: smolagents.LiteLLMModel
+      capture:
+        provider: litellm
+        model: "{kwarg('model_id')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: smolagents.CodeAgent
+    - kind: class_instantiation
+      class: smolagents.ToolCallingAgent
+    - kind: class_instantiation
+      class: smolagents.MultiStepAgent
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.smolagents
+  wrap_fn: wrap_agent

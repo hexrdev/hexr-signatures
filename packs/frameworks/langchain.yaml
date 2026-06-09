@@ -1,0 +1,110 @@
+# Hexr framework signature — LangChain
+# Spec ref: HEXR_SDK_OVERHAUL_TECH_SPEC.md §17.4 (signature format)
+# Python-only v1; mirrors the schema established by crewai.yaml.
+
+schema_version: "1.0"
+kind: framework
+id: langchain
+display_name: "LangChain"
+homepage: https://python.langchain.com
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: langchain
+      weight: 0.4
+    - module: langchain_core
+      weight: 0.3
+    - module: langchain_community
+      weight: 0.2
+    - module: langchain_openai
+      weight: 0.1
+  symbol_patterns:
+    - kind: class_instantiation
+      class: langchain.agents.AgentExecutor
+      weight: 0.3
+    - kind: class_instantiation
+      class: langchain_core.prompts.ChatPromptTemplate
+      weight: 0.2
+    - kind: class_instantiation
+      class: langchain_openai.ChatOpenAI
+      weight: 0.2
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: langchain.agents.AgentExecutor
+      capture:
+        name: "{kwarg('name')}"
+  tool:
+    - kind: decorator
+      name: langchain_core.tools.tool
+      target: function
+    - kind: decorator
+      name: langchain.tools.tool
+      target: function
+    - kind: class_instantiation
+      class: langchain_core.tools.BaseTool
+  llm_client:
+    - kind: class_instantiation
+      class: langchain_openai.ChatOpenAI
+      capture:
+        provider: openai
+        model: "{kwarg('model')}"
+    - kind: class_instantiation
+      class: langchain_anthropic.ChatAnthropic
+      capture:
+        provider: anthropic
+        model: "{kwarg('model')}"
+  orchestrator:
+    - kind: class_instantiation
+      class: langchain.agents.AgentExecutor
+      capture:
+        name: "{kwarg('name')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: langchain.agents.AgentExecutor
+    - kind: function_call
+      name: langchain.agents.create_react_agent
+    - kind: function_call
+      name: langchain.agents.create_tool_calling_agent
+
+  # PR-D2: receiver-typed LLM dispatch on the LangChain chat models.
+  # `llm = ChatOpenAI(...); llm.invoke(prompt)` and async variants.
+  llm_call:
+    - kind: function_call
+      name: langchain_openai.ChatOpenAI.invoke
+    - kind: function_call
+      name: langchain_openai.ChatOpenAI.ainvoke
+    - kind: function_call
+      name: langchain_openai.ChatOpenAI.stream
+    - kind: function_call
+      name: langchain_openai.ChatOpenAI.batch
+    - kind: function_call
+      name: langchain_anthropic.ChatAnthropic.invoke
+    - kind: function_call
+      name: langchain_anthropic.ChatAnthropic.ainvoke
+    - kind: function_call
+      name: langchain_anthropic.ChatAnthropic.stream
+    - kind: function_call
+      name: langchain.agents.AgentExecutor.invoke
+    - kind: function_call
+      name: langchain.agents.AgentExecutor.ainvoke
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+  - on: tool
+    decorator: "@hexr_tool"
+    code: HXR102
+  - on: llm_client
+    wrap: "hexr_llm()"
+    code: HXR103
+
+adapter:
+  module: hexr.frameworks.langchain
+  wrap_fn: wrap_executor

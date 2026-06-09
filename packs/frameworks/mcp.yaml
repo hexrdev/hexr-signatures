@@ -1,0 +1,56 @@
+schema_version: "1.0"
+kind: framework
+id: mcp
+display_name: "MCP (Model Context Protocol — Python)"
+homepage: https://modelcontextprotocol.io/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: mcp
+      weight: 0.4
+    - module: mcp.server
+      weight: 0.3
+    - module: mcp.client
+      weight: 0.2
+    - module: mcp.server.fastmcp
+      weight: 0.1
+  symbol_patterns:
+    - kind: class_instantiation
+      class: mcp.server.fastmcp.FastMCP
+      weight: 0.4
+    - kind: class_instantiation
+      class: mcp.server.Server
+      weight: 0.3
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: mcp.server.fastmcp.FastMCP
+      capture:
+        name: "{kwarg('name')}"
+    - kind: class_instantiation
+      class: mcp.server.Server
+      capture:
+        name: "{kwarg('name')}"
+  tool:
+    - kind: decorator
+      name: mcp.server.fastmcp.FastMCP.tool
+      target: function
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: mcp.server.fastmcp.FastMCP
+    - kind: class_instantiation
+      class: mcp.server.Server
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.mcp
+  wrap_fn: wrap_server

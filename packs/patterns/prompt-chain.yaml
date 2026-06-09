@@ -1,0 +1,18 @@
+# Pattern: Prompt Chaining (Anthropic 2024)
+# Sequential LLM calls where each call's output feeds the next.
+# Static signal: ≥2 LLM calls in same function, no loop, no parallel construct.
+schema_version: "1.0"
+kind: pattern
+id: prompt-chain
+display_name: "Prompt Chaining"
+homepage: https://www.anthropic.com/research/building-effective-agents
+maintainer: hexr
+version: "1.0.0"
+
+match:
+  min_llm_calls_per_function: 2
+  has_loop: false
+  has_parallel: false
+  has_branch_on_llm: false
+
+confidence: 0.7

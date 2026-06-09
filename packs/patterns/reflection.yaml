@@ -1,0 +1,18 @@
+# Pattern: Reflection
+# Agent reasons over its own prior output. Static signal: loop where the
+# same LLM is called ≥2 times AND prior output is referenced.
+# v1 approximation: loop + ≥2 LLM calls + 0 tool calls (distinguishes from ReAct).
+schema_version: "1.0"
+kind: pattern
+id: reflection
+display_name: "Reflection"
+homepage: https://arxiv.org/abs/2303.11366
+maintainer: hexr
+version: "1.0.0"
+
+match:
+  has_loop: true
+  min_llm_calls_per_function: 2
+  max_tool_calls_per_function: 0
+
+confidence: 0.7

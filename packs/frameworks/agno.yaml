@@ -1,0 +1,67 @@
+schema_version: "1.0"
+kind: framework
+id: agno
+display_name: "Agno (formerly Phidata)"
+homepage: https://docs.agno.com/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: agno
+      weight: 0.4
+    - module: agno.agent
+      weight: 0.3
+    - module: agno.team
+      weight: 0.2
+    - module: agno.tools
+      weight: 0.1
+  symbol_patterns:
+    - kind: class_instantiation
+      class: agno.agent.Agent
+      weight: 0.4
+    - kind: class_instantiation
+      class: agno.team.Team
+      weight: 0.2
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: agno.agent.Agent
+      capture:
+        name: "{kwarg('name')}"
+        model: "{kwarg('model')}"
+  tool:
+    - kind: class_instantiation
+      class: agno.tools.Toolkit
+    - kind: decorator
+      name: agno.tools.tool
+      target: function
+  llm_client:
+    - kind: kwarg_value
+      class: agno.agent.Agent
+      kwarg: model
+      capture:
+        provider: "inferred"
+        model: "{kwarg('model')}"
+  orchestrator:
+    - kind: class_instantiation
+      class: agno.team.Team
+      capture:
+        name: "{kwarg('name')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: agno.agent.Agent
+    - kind: class_instantiation
+      class: agno.team.Team
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.agno
+  wrap_fn: wrap_agent

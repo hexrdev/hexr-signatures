@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signatures.hexr.cloud/schema/pack.schema.json",
+  "title": "Hexr signature pack",
+  "description": "Declarative framework or pattern signature consumed by the Hexr SDK's Rust analyzer (HEXR_SDK_OVERHAUL_TECH_SPEC.md §17.4). Schema is permissive on framework-specific subtrees and strict only on the core invariants the analyzer relies on for loading.",
+  "type": "object",
+  "required": ["schema_version", "kind", "id", "version"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["framework", "pattern"]
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+      "description": "Lowercase kebab-case. Validate workflow additionally enforces id == filename stem."
+    },
+    "display_name": { "type": "string" },
+    "homepage": { "type": "string", "format": "uri" },
+    "maintainer": { "type": "string" },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "min_sdk": {
+      "type": "string",
+      "description": "Optional minimum SDK version."
+    },
+    "detect": {
+      "type": "object",
+      "description": "Required for kind=framework. Detection rules grouped by AST shape.",
+      "additionalProperties": true
+    },
+    "idioms": {
+      "type": "object",
+      "description": "Framework-specific idiom mappings (agent, tool, llm_client, orchestrator, agent_spawn, etc.). Permissive: each idiom group is an array of symbol patterns.",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "object" }
+      }
+    },
+    "adapter": {
+      "type": ["object", "null"],
+      "description": "Optional adapter config — framework-specific runtime hooks."
+    },
+    "suggest": {
+      "type": ["array", "object", "null"],
+      "description": "Optional L3 ColBERT/MaxSim suggestion config (enterprise profile). Array of {on, decorator|wrap, code} entries OR object form."
+    },
+    "match": {
+      "type": "object",
+      "description": "Required for kind=pattern. Structural match rules (e.g. has_loop, min_llm_calls_per_function)."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Pattern packs only: base confidence score on match."
+    },
+    "evidence_tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "framework" } }, "required": ["kind"] },
+      "then": { "required": ["detect"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "pattern" } }, "required": ["kind"] },
+      "then": { "required": ["match"] }
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+schema_version: "1.0"
+kind: framework
+id: llamaindex
+display_name: "LlamaIndex"
+homepage: https://docs.llamaindex.ai/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: llama_index
+      weight: 0.4
+    - module: llama_index.core
+      weight: 0.3
+    - module: llama_index.core.agent
+      weight: 0.2
+    - module: llama_index.llms
+      weight: 0.1
+  symbol_patterns:
+    - kind: class_instantiation
+      class: llama_index.core.agent.ReActAgent
+      weight: 0.3
+    - kind: class_instantiation
+      class: llama_index.core.agent.AgentRunner
+      weight: 0.2
+    - kind: class_instantiation
+      class: llama_index.core.agent.FunctionCallingAgentWorker
+      weight: 0.2
+    - kind: function_call
+      name: llama_index.core.agent.ReActAgent.from_tools
+      weight: 0.2
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: llama_index.core.agent.ReActAgent
+      capture:
+        name: "react_agent"
+    - kind: class_instantiation
+      class: llama_index.core.agent.AgentRunner
+      capture:
+        name: "agent_runner"
+  tool:
+    - kind: class_instantiation
+      class: llama_index.core.tools.FunctionTool
+    - kind: function_call
+      name: llama_index.core.tools.FunctionTool.from_defaults
+  llm_client:
+    - kind: class_instantiation
+      class: llama_index.llms.openai.OpenAI
+      capture:
+        provider: openai
+        model: "{kwarg('model')}"
+    - kind: class_instantiation
+      class: llama_index.llms.anthropic.Anthropic
+      capture:
+        provider: anthropic
+        model: "{kwarg('model')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: llama_index.core.agent.ReActAgent
+    - kind: class_instantiation
+      class: llama_index.core.agent.AgentRunner
+    - kind: class_instantiation
+      class: llama_index.core.agent.FunctionCallingAgentWorker
+    - kind: function_call
+      name: llama_index.core.agent.ReActAgent.from_tools
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.llamaindex
+  wrap_fn: wrap_agent

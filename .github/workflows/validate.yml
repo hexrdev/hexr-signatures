@@ -1,0 +1,95 @@
+name: validate
+
+# PR gate per HEXR_SDK_OVERHAUL_TECH_SPEC.md §21.4.7.
+# Runs on every PR + push to main. Three layers, all mandatory:
+#   1. yamllint  — catches syntax + indentation errors before they reach Rust
+#   2. schema    — every pack must validate against schema/pack.schema.json
+#   3. smoke     — `hexr analyze` must parse the merged pack tree without error
+#
+# Smoke uses the latest published hexr-sdk wheel from GCP AR, NOT a local
+# editable install, so a green CI run means "current SDK in customer hands
+# can actually consume this pack."
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install yamllint
+      - run: yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" packs/
+
+  schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install jsonschema PyYAML
+      - name: Validate every pack against pack.schema.json
+        run: |
+          python - <<'PY'
+          import json, sys
+          from pathlib import Path
+          import yaml
+          from jsonschema import Draft202012Validator
+
+          schema = json.loads(Path("schema/pack.schema.json").read_text())
+          validator = Draft202012Validator(schema)
+
+          packs = sorted(Path("packs").rglob("*.yaml"))
+          if not packs:
+              print("::error::no pack files found under packs/")
+              sys.exit(1)
+
+          failed = 0
+          for p in packs:
+              doc = yaml.safe_load(p.read_text())
+              errors = sorted(validator.iter_errors(doc), key=lambda e: e.path)
+              if errors:
+                  failed += 1
+                  for e in errors:
+                      loc = "/".join(str(x) for x in e.absolute_path) or "<root>"
+                      print(f"::error file={p}::{loc}: {e.message}")
+
+          print(f"checked {len(packs)} packs, {failed} failed")
+          sys.exit(1 if failed else 0)
+          PY
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: [yamllint, schema]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.HEXR_GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.HEXR_GCP_AR_READER_SA }}
+      - run: pip install keyrings.google-artifactregistry-auth
+      - name: Install current hexr-sdk from GCP AR
+        run: |
+          pip install \
+            --index-url https://us-central1-python.pkg.dev/hexr-cloud-prod/hexr-python/simple/ \
+            "hexr-sdk[cli]"
+      - name: Stage packs into a fake project overlay + invoke analyzer
+        run: |
+          mkdir -p ./fake-project/hexr-signatures
+          cp -r packs/frameworks ./fake-project/hexr-signatures/
+          cp -r packs/patterns   ./fake-project/hexr-signatures/
+          # Tiny fixture so `hexr analyze` has something to do.
+          cat > ./fake-project/demo.py <<'PY'
+          def hello(): return "world"
+          PY
+          cd ./fake-project && hexr analyze . --json | python -c "import json,sys; json.load(sys.stdin); print('analyzer parsed merged pack tree OK')"

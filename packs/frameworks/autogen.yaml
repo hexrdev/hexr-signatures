@@ -1,0 +1,91 @@
+schema_version: "1.0"
+kind: framework
+id: autogen
+display_name: "AutoGen"
+homepage: https://microsoft.github.io/autogen/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: autogen
+      weight: 0.3
+    - module: autogen_agentchat
+      weight: 0.3
+    - module: autogen_core
+      weight: 0.2
+    - module: autogen_ext
+      weight: 0.2
+  symbol_patterns:
+    - kind: class_instantiation
+      class: autogen.AssistantAgent
+      weight: 0.25
+    - kind: class_instantiation
+      class: autogen_agentchat.agents.AssistantAgent
+      weight: 0.25
+    - kind: class_instantiation
+      class: autogen.UserProxyAgent
+      weight: 0.2
+    - kind: class_instantiation
+      class: autogen_agentchat.teams.RoundRobinGroupChat
+      weight: 0.2
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: autogen.AssistantAgent
+      capture:
+        name: "{kwarg('name')}"
+        model: "{kwarg('model')}"
+    - kind: class_instantiation
+      class: autogen_agentchat.agents.AssistantAgent
+      capture:
+        name: "{kwarg('name')}"
+    - kind: class_instantiation
+      class: autogen.UserProxyAgent
+      capture:
+        name: "{kwarg('name')}"
+  tool:
+    - kind: function_call
+      name: autogen.register_function
+  llm_client:
+    - kind: class_instantiation
+      class: autogen_ext.models.openai.OpenAIChatCompletionClient
+      capture:
+        provider: openai
+        model: "{kwarg('model')}"
+    - kind: class_instantiation
+      class: autogen_ext.models.anthropic.AnthropicChatCompletionClient
+      capture:
+        provider: anthropic
+        model: "{kwarg('model')}"
+  orchestrator:
+    - kind: class_instantiation
+      class: autogen_agentchat.teams.RoundRobinGroupChat
+    - kind: class_instantiation
+      class: autogen.GroupChat
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: autogen.AssistantAgent
+    - kind: class_instantiation
+      class: autogen_agentchat.agents.AssistantAgent
+    - kind: class_instantiation
+      class: autogen.UserProxyAgent
+    - kind: class_instantiation
+      class: autogen_agentchat.teams.RoundRobinGroupChat
+    - kind: class_instantiation
+      class: autogen.GroupChat
+  tool_call:
+    - kind: function_call
+      name: autogen.register_function
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.autogen
+  wrap_fn: wrap_team

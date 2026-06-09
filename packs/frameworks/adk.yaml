@@ -1,0 +1,89 @@
+schema_version: "1.0"
+kind: framework
+id: adk
+display_name: "Google ADK"
+homepage: https://google.github.io/adk-docs/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: google.adk
+      weight: 0.5
+    - module: google.adk.agents
+      weight: 0.3
+    - module: google.adk.tools
+      weight: 0.2
+  symbol_patterns:
+    - kind: class_instantiation
+      class: google.adk.agents.LlmAgent
+      weight: 0.3
+    - kind: class_instantiation
+      class: google.adk.agents.SequentialAgent
+      weight: 0.2
+    - kind: class_instantiation
+      class: google.adk.agents.ParallelAgent
+      weight: 0.2
+    - kind: class_instantiation
+      class: google.adk.agents.LoopAgent
+      weight: 0.2
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: google.adk.agents.LlmAgent
+      capture:
+        name: "{kwarg('name')}"
+        model: "{kwarg('model')}"
+    - kind: class_instantiation
+      class: google.adk.agents.Agent
+      capture:
+        name: "{kwarg('name')}"
+        model: "{kwarg('model')}"
+  tool:
+    - kind: class_instantiation
+      class: google.adk.tools.FunctionTool
+    - kind: class_instantiation
+      class: google.adk.tools.LongRunningFunctionTool
+  llm_client:
+    - kind: kwarg_value
+      class: google.adk.agents.LlmAgent
+      kwarg: model
+      capture:
+        provider: google
+        model: "{kwarg('model')}"
+  orchestrator:
+    - kind: class_instantiation
+      class: google.adk.agents.SequentialAgent
+      capture:
+        name: "{kwarg('name')}"
+    - kind: class_instantiation
+      class: google.adk.agents.ParallelAgent
+      capture:
+        name: "{kwarg('name')}"
+    - kind: class_instantiation
+      class: google.adk.agents.LoopAgent
+      capture:
+        name: "{kwarg('name')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: google.adk.agents.LlmAgent
+    - kind: class_instantiation
+      class: google.adk.agents.Agent
+    - kind: class_instantiation
+      class: google.adk.agents.SequentialAgent
+    - kind: class_instantiation
+      class: google.adk.agents.ParallelAgent
+    - kind: class_instantiation
+      class: google.adk.agents.LoopAgent
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.adk
+  wrap_fn: wrap_agent

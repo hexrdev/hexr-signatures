@@ -1,0 +1,102 @@
+# Hexr framework signature — CrewAI
+# Spec ref: HEXR_SDK_OVERHAUL_TECH_SPEC.md §17.4 (signature format)
+# This is the canonical exemplar pack. Adding/updating a framework is a YAML PR
+# only — no Rust release. Loaded by hexr-detect crate (PR-C onward).
+
+schema_version: "1.0"
+kind: framework
+id: crewai
+display_name: "CrewAI"
+homepage: https://docs.crewai.com
+maintainer: hexr
+version: "1.0.0"
+
+# Detection rules — ANY match increments confidence; weights sum to ≤1.0
+detect:
+  imports:
+    - module: crewai
+      weight: 0.5
+    - module: crewai.agent
+      weight: 0.2
+    - module: crewai.crew
+      weight: 0.2
+    - module: crewai.task
+      weight: 0.1
+  symbol_patterns:
+    - kind: class_instantiation
+      class: crewai.Agent
+      weight: 0.3
+    - kind: class_instantiation
+      class: crewai.Crew
+      weight: 0.3
+    - kind: class_instantiation
+      class: crewai.Task
+      weight: 0.2
+
+# Idiom mapping — what CrewAI calls X, Hexr maps to its IR Y
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: crewai.Agent
+      capture:
+        name: "{kwarg('role')}"
+        goal: "{kwarg('goal')}"
+        model: "{kwarg('llm')}"
+  tool:
+    - kind: decorator
+      name: crewai.tools.tool
+      target: function
+    - kind: class_instantiation
+      class: crewai.tools.BaseTool
+  llm_client:
+    - kind: kwarg_value
+      class: crewai.Agent
+      kwarg: llm
+      capture:
+        provider: "{infer_provider(value)}"
+        model: "{value}"
+  orchestrator:
+    - kind: class_instantiation
+      class: crewai.Crew
+      capture:
+        process: "{kwarg('process')}"
+
+  # PR-D1: call-classification idioms — consumed by CallClassifier in walker.rs
+  # to bump per-function aggregates (llm_calls / tool_calls / agent_spawns).
+  # Only fully-qualified resolvable callables. Receiver-typed methods
+  # (e.g. `crew.kickoff()`) wait for PR-D2; until then the fallback hint
+  # constants in walker.rs handle method-style LLM dispatch.
+  # Note: `crewai.Task` is intentionally NOT listed as agent_spawn — a Task is
+  # a unit of work, not an agent. Leaving it unmatched lets the legacy
+  # constants treat it as fallback evidence until PR-D2 adds receiver tracking
+  # for `crew.kickoff()` (the real coordination call).
+  agent_spawn:
+    - kind: class_instantiation
+      class: crewai.Agent
+    - kind: class_instantiation
+      class: crewai.Crew
+
+  # PR-D2: receiver-typed orchestration call. `crew = Crew(...); crew.kickoff()`
+  # is the canonical execution entry point in CrewAI; rewriting via the
+  # receiver table makes it visible without touching the host import path.
+  llm_call:
+    - kind: function_call
+      name: crewai.Crew.kickoff
+    - kind: function_call
+      name: crewai.Crew.kickoff_async
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+  - on: tool
+    decorator: "@hexr_tool"
+    code: HXR102
+  - on: llm_client
+    wrap: "hexr_llm()"
+    code: HXR103
+
+# Adapter shim hint — Python-side helper that wraps a Crew explicitly
+adapter:
+  module: hexr.frameworks.crewai
+  wrap_fn: wrap_crew

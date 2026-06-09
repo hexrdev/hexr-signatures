@@ -1,0 +1,77 @@
+schema_version: "1.0"
+kind: framework
+id: langgraph
+display_name: "LangGraph"
+homepage: https://langchain-ai.github.io/langgraph/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: langgraph
+      weight: 0.4
+    - module: langgraph.graph
+      weight: 0.3
+    - module: langgraph.prebuilt
+      weight: 0.2
+    - module: langgraph.checkpoint
+      weight: 0.1
+  symbol_patterns:
+    - kind: class_instantiation
+      class: langgraph.graph.StateGraph
+      weight: 0.3
+    - kind: class_instantiation
+      class: langgraph.graph.MessageGraph
+      weight: 0.2
+    - kind: function_call
+      name: langgraph.prebuilt.create_react_agent
+      weight: 0.3
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: langgraph.graph.StateGraph
+      capture:
+        name: "{kwarg('name')}"
+    - kind: function_call
+      name: langgraph.prebuilt.create_react_agent
+      capture:
+        name: "react_agent"
+  tool:
+    - kind: decorator
+      name: langchain_core.tools.tool
+      target: function
+  llm_client:
+    - kind: class_instantiation
+      class: langchain_openai.ChatOpenAI
+      capture:
+        provider: openai
+        model: "{kwarg('model')}"
+    - kind: class_instantiation
+      class: langchain_anthropic.ChatAnthropic
+      capture:
+        provider: anthropic
+        model: "{kwarg('model')}"
+  orchestrator:
+    - kind: class_instantiation
+      class: langgraph.graph.StateGraph
+      capture:
+        name: "{kwarg('name')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: langgraph.graph.StateGraph
+    - kind: class_instantiation
+      class: langgraph.graph.MessageGraph
+    - kind: function_call
+      name: langgraph.prebuilt.create_react_agent
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.langgraph
+  wrap_fn: wrap_graph

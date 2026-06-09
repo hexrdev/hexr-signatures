@@ -1,0 +1,15 @@
+# Pattern: Evaluator-Optimizer (Anthropic 2024)
+# Loop containing both a generator LLM call and an evaluator LLM call.
+schema_version: "1.0"
+kind: pattern
+id: evaluator-optimizer
+display_name: "Evaluator-Optimizer"
+homepage: https://www.anthropic.com/research/building-effective-agents
+maintainer: hexr
+version: "1.0.0"
+
+match:
+  has_loop: true
+  min_llm_calls_per_function: 2
+
+confidence: 0.75

@@ -1,0 +1,16 @@
+# Pattern: Parallelization (sectioning / voting)
+# Multiple LLM/tool calls dispatched concurrently via asyncio.gather, asyncio.as_completed,
+# concurrent.futures.ThreadPoolExecutor, or comprehension-over-coroutines.
+schema_version: "1.0"
+kind: pattern
+id: parallelization
+display_name: "Parallelization"
+homepage: https://www.anthropic.com/research/building-effective-agents
+maintainer: hexr
+version: "1.0.0"
+
+match:
+  has_parallel: true
+  min_llm_calls_per_function: 1
+
+confidence: 0.85

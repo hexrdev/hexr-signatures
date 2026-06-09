@@ -1,0 +1,58 @@
+schema_version: "1.0"
+kind: framework
+id: pydantic-ai
+display_name: "Pydantic AI"
+homepage: https://ai.pydantic.dev/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: pydantic_ai
+      weight: 0.5
+    - module: pydantic_ai.models
+      weight: 0.2
+    - module: pydantic_ai.tools
+      weight: 0.2
+    - module: pydantic_ai.agent
+      weight: 0.1
+  symbol_patterns:
+    - kind: class_instantiation
+      class: pydantic_ai.Agent
+      weight: 0.4
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: pydantic_ai.Agent
+      capture:
+        name: "{kwarg('name')}"
+        model: "{kwarg('model')}"
+  tool:
+    - kind: decorator
+      name: pydantic_ai.tool
+      target: function
+    - kind: decorator
+      name: pydantic_ai.Agent.tool
+      target: function
+  llm_client:
+    - kind: kwarg_value
+      class: pydantic_ai.Agent
+      kwarg: model
+      capture:
+        provider: "inferred"
+        model: "{kwarg('model')}"
+
+  # PR-D1: call-classification idioms.
+  agent_spawn:
+    - kind: class_instantiation
+      class: pydantic_ai.Agent
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.pydantic_ai
+  wrap_fn: wrap_agent

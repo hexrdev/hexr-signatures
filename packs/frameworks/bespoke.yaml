@@ -1,0 +1,131 @@
+schema_version: "1.0"
+kind: framework
+id: bespoke
+display_name: "Bespoke (no framework, raw OpenAI/Anthropic clients)"
+homepage: ""
+maintainer: hexr
+version: "1.0.0"
+
+# This pack matches "no framework" Python that calls LLM provider SDKs
+# directly. Confidence stays low on purpose so a real framework wins when
+# both signals appear; bespoke is the fallback that ensures the SDK still
+# captures evidence rows for raw OpenAI / Anthropic / Google calls.
+
+detect:
+  imports:
+    - module: openai
+      weight: 0.2
+    - module: anthropic
+      weight: 0.2
+    - module: google.generativeai
+      weight: 0.2
+    - module: google.genai
+      weight: 0.2
+    - module: cohere
+      weight: 0.1
+    - module: mistralai
+      weight: 0.1
+  symbol_patterns:
+    - kind: class_instantiation
+      class: openai.OpenAI
+      weight: 0.15
+    - kind: class_instantiation
+      class: openai.AsyncOpenAI
+      weight: 0.15
+    - kind: class_instantiation
+      class: anthropic.Anthropic
+      weight: 0.15
+    - kind: class_instantiation
+      class: anthropic.AsyncAnthropic
+      weight: 0.15
+
+idioms:
+  llm_client:
+    - kind: class_instantiation
+      class: openai.OpenAI
+      capture:
+        provider: openai
+        model: ""
+    - kind: class_instantiation
+      class: openai.AsyncOpenAI
+      capture:
+        provider: openai
+        model: ""
+    - kind: class_instantiation
+      class: anthropic.Anthropic
+      capture:
+        provider: anthropic
+        model: ""
+    - kind: class_instantiation
+      class: anthropic.AsyncAnthropic
+      capture:
+        provider: anthropic
+        model: ""
+    - kind: class_instantiation
+      class: google.genai.Client
+      capture:
+        provider: google
+        model: ""
+    - kind: class_instantiation
+      class: cohere.Client
+      capture:
+        provider: cohere
+        model: ""
+    - kind: class_instantiation
+      class: mistralai.Mistral
+      capture:
+        provider: mistral
+        model: ""
+
+  # PR-D1: call-classification idioms. Only legacy module-level dispatch
+  # functions are matchable today; instance-method calls like
+  # `client.chat.completions.create(...)` need PR-D2 receiver-type tracking.
+  llm_call:
+    - kind: function_call
+      name: openai.chat.completions.create
+    - kind: function_call
+      name: openai.completions.create
+    - kind: function_call
+      name: anthropic.completions.create
+
+    # PR-D2: receiver-typed methods. The walker rewrites
+    # `client.chat.completions.create` to `openai.OpenAI.chat.completions.create`
+    # when `client = OpenAI()` was seen earlier in the same function.
+    # Each provider gets sync + async client variants.
+    - kind: function_call
+      name: openai.OpenAI.chat.completions.create
+    - kind: function_call
+      name: openai.OpenAI.completions.create
+    - kind: function_call
+      name: openai.OpenAI.responses.create
+    - kind: function_call
+      name: openai.AsyncOpenAI.chat.completions.create
+    - kind: function_call
+      name: openai.AsyncOpenAI.completions.create
+    - kind: function_call
+      name: openai.AsyncOpenAI.responses.create
+    - kind: function_call
+      name: anthropic.Anthropic.messages.create
+    - kind: function_call
+      name: anthropic.Anthropic.completions.create
+    - kind: function_call
+      name: anthropic.AsyncAnthropic.messages.create
+    - kind: function_call
+      name: anthropic.AsyncAnthropic.completions.create
+    - kind: function_call
+      name: cohere.Client.chat
+    - kind: function_call
+      name: cohere.Client.generate
+    - kind: function_call
+      name: mistralai.Mistral.chat.complete
+    - kind: function_call
+      name: google.genai.Client.models.generate_content
+
+suggest:
+  - on: llm_client
+    wrap: "hexr_llm()"
+    code: HXR103
+
+adapter:
+  module: hexr.frameworks.bespoke
+  wrap_fn: wrap_call

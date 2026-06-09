@@ -1,0 +1,80 @@
+schema_version: "1.0"
+kind: framework
+id: dspy
+display_name: "DSPy"
+homepage: https://dspy.ai/
+maintainer: hexr
+version: "1.0.0"
+
+detect:
+  imports:
+    - module: dspy
+      weight: 0.5
+    - module: dspy.teleprompt
+      weight: 0.2
+    - module: dspy.predict
+      weight: 0.2
+  symbol_patterns:
+    - kind: class_instantiation
+      class: dspy.ReAct
+      weight: 0.25
+    - kind: class_instantiation
+      class: dspy.Predict
+      weight: 0.2
+    - kind: class_instantiation
+      class: dspy.ChainOfThought
+      weight: 0.25
+    - kind: class_instantiation
+      class: dspy.ProgramOfThought
+      weight: 0.2
+    - kind: class_instantiation
+      class: dspy.Module
+      weight: 0.1
+
+idioms:
+  agent:
+    - kind: class_instantiation
+      class: dspy.ReAct
+      capture:
+        name: "react"
+    - kind: class_instantiation
+      class: dspy.Module
+      capture:
+        name: "module"
+  tool:
+    - kind: class_instantiation
+      class: dspy.Tool
+  llm_client:
+    - kind: class_instantiation
+      class: dspy.LM
+      capture:
+        provider: "inferred"
+        model: "{kwarg('model')}"
+    - kind: class_instantiation
+      class: dspy.OpenAI
+      capture:
+        provider: openai
+        model: "{kwarg('model')}"
+
+  # PR-D1: call-classification idioms. DSPy modules ARE the agents — each
+  # constructor is a fresh agent-shaped reasoning unit.
+  agent_spawn:
+    - kind: class_instantiation
+      class: dspy.ReAct
+    - kind: class_instantiation
+      class: dspy.Module
+    - kind: class_instantiation
+      class: dspy.Predict
+    - kind: class_instantiation
+      class: dspy.ChainOfThought
+    - kind: class_instantiation
+      class: dspy.ProgramOfThought
+
+suggest:
+  - on: agent
+    decorator: "@hexr_agent"
+    code: HXR101
+
+adapter:
+  module: hexr.frameworks.dspy
+  wrap_fn: wrap_module

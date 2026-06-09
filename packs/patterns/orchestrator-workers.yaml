@@ -1,0 +1,15 @@
+# Pattern: Orchestrator-Workers (Anthropic 2024)
+# A central function spawns ≥2 sub-agents and coordinates them.
+schema_version: "1.0"
+kind: pattern
+id: orchestrator-workers
+display_name: "Orchestrator-Workers"
+homepage: https://www.anthropic.com/research/building-effective-agents
+maintainer: hexr
+version: "1.0.0"
+
+match:
+  min_agent_spawns_per_function: 2
+  min_llm_calls_per_function: 1
+
+confidence: 0.8
