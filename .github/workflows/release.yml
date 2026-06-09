@@ -29,7 +29,8 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # required: OIDC token for Sigstore + GCP WIF
+  id-token: write       # required: OIDC token for Sigstore + GCP WIF
+  attestations: write  # required: actions/attest-build-provenance@v1 writes SLSA provenance via the GitHub Attestations API
 
 jobs:
   release:
