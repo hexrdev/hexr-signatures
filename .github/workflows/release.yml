@@ -67,7 +67,13 @@ jobs:
         env:
           COSIGN_YES: "true"
         run: |
+          # --new-bundle-format emits the Sigstore Bundle v0.3 protobuf JSON
+          # that sigstore-python's `Bundle.from_json()` expects. Without
+          # this flag, cosign emits its legacy `{base64Signature, cert}`
+          # format which the SDK rejects as "unsupported bundle format".
+          # Requires cosign >= 2.5.0.
           cosign sign-blob \
+            --new-bundle-format \
             --bundle "hexr-signatures-${VERSION}.tar.gz.sigstore.json" \
             "hexr-signatures-${VERSION}.tar.gz"
           # Also emit detached .sig + .crt for back-compat with the SDK's
