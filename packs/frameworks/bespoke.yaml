@@ -121,6 +121,15 @@ idioms:
     - kind: function_call
       name: google.genai.Client.models.generate_content
 
+  # Parallel fan-out sites. Seeds L3's corpus for CallClass::Parallel.
+  parallel_call:
+    - kind: function_call
+      name: asyncio.gather
+    - kind: function_call
+      name: concurrent.futures.ThreadPoolExecutor.map
+    - kind: function_call
+      name: concurrent.futures.ThreadPoolExecutor.submit
+
 suggest:
   - on: llm_client
     wrap: "hexr_llm()"

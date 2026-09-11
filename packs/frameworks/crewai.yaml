@@ -85,6 +85,19 @@ idioms:
     - kind: function_call
       name: crewai.Crew.kickoff_async
 
+  # Tool INVOCATION sites (distinct from the `tool` bucket, which holds tool
+  # DEFINITIONS). Only `tool_call` seeds L3's corpus — see spec §22.13.
+  tool_call:
+    - kind: function_call
+      name: crewai.tools.BaseTool.run
+
+  # Parallel fan-out sites. Seeds L3's corpus for CallClass::Parallel.
+  parallel_call:
+    - kind: function_call
+      name: crewai.Crew.kickoff_for_each
+    - kind: function_call
+      name: crewai.Crew.kickoff_for_each_async
+
 suggest:
   - on: agent
     decorator: "@hexr_agent"

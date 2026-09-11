@@ -62,6 +62,12 @@ idioms:
     - kind: class_instantiation
       class: smolagents.MultiStepAgent
 
+  # Tool INVOCATION sites (distinct from the `tool` bucket, which holds tool
+  # DEFINITIONS). Only `tool_call` seeds L3's corpus — see spec §22.13.
+  tool_call:
+    - kind: function_call
+      name: smolagents.Tool.forward
+
 suggest:
   - on: agent
     decorator: "@hexr_agent"

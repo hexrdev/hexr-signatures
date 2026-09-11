@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026.09.1 — 2026-09-11
+
+Adds `tool_call` and `parallel_call` idiom rules so L3 (`hexr analyze
+--suggest`) can actually propose them.
+
+Only four idiom buckets seed L3's corpus — `llm_call`, `tool_call`,
+`agent_spawn`, `parallel_call` — and before this release `tool_call` had **1**
+rule across all 15 packs and `parallel_call` had **0**. The suggest call uses
+`top_k 5` with `min_agree 3`, so three neighbours must agree on a label:
+CallClass::Tool and CallClass::Parallel could never be proposed, silently
+(hexr spec §22.13).
+
+  tool_call      1 -> 12
+  parallel_call  0 ->  9
+
+Added, all verified by importing the real package before writing the rule:
+
+  langchain    tool_call     BaseTool.invoke / ainvoke / run / arun
+               parallel_call Runnable.batch / abatch, RunnableParallel
+  crewai       tool_call     tools.BaseTool.run
+               parallel_call Crew.kickoff_for_each / kickoff_for_each_async
+  llamaindex   tool_call     FunctionTool.call / acall
+  langgraph    tool_call     prebuilt.ToolNode.invoke / ainvoke
+               parallel_call types.Send
+  smolagents   tool_call     Tool.forward
+  mcp          tool_call     ClientSession.call_tool
+  bespoke      parallel_call asyncio.gather,
+                             ThreadPoolExecutor.map / submit
+
+Deliberately NOT added: `pydantic_ai.tools.Tool.run` (no such attribute) and
+autogen tool invocation (module did not import for verification). Guessing API
+surface would pollute both detection and the seed corpus.
+
+`tool_call` holds tool INVOCATIONS and is distinct from the `tool` bucket,
+which holds tool DEFINITIONS (decorators, BaseTool subclasses). Mapping the
+latter into the corpus would seed call-site retrieval with definition sites.
+
 ## 2026.09.0 — 2026-09-11
 
 No pack changes. Identical content to 2026.06.0 (15 frameworks, 7 patterns).
