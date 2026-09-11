@@ -103,12 +103,42 @@ jobs:
       - name: Download SLSA attestation as .intoto.jsonl
         env:
           GH_TOKEN: ${{ github.token }}
+          SHA256: ${{ steps.hash.outputs.sha256 }}
         run: |
+          # `gh attestation download` writes the bundle to a file named
+          # `sha256:<digest>.jsonl` in the CWD and prints only a status line
+          # to stdout. Redirecting stdout therefore captured the LOG MESSAGE,
+          # not the attestation: the 2026.06.0 artifact published to the feed
+          # is 268 bytes reading "Wrote attestations to file sha256:….jsonl".
+          # Take the file gh actually wrote. (fixed 2026-09-11)
           gh attestation download \
             "hexr-signatures-${VERSION}.tar.gz" \
             --repo "${GITHUB_REPOSITORY}" \
-            --predicate-type "https://slsa.dev/provenance/v1" \
-            > "hexr-signatures-${VERSION}.intoto.jsonl"
+            --predicate-type "https://slsa.dev/provenance/v1"
+
+          src="sha256:${SHA256}.jsonl"
+          if [ ! -s "$src" ]; then
+            echo "::error::expected attestation at ${src}; got:"; ls -la
+            exit 1
+          fi
+          mv "$src" "hexr-signatures-${VERSION}.intoto.jsonl"
+
+          # Fail the release rather than publish an unverifiable attestation.
+          python3 - "$PWD/hexr-signatures-${VERSION}.intoto.jsonl" "${SHA256}" <<'PY'
+          import base64, json, sys
+          path, want = sys.argv[1], sys.argv[2]
+          lines = [l for l in open(path) if l.strip()]
+          if not lines:
+              sys.exit("attestation file is empty")
+          env = json.loads(lines[0]).get("dsseEnvelope") or {}
+          stmt = json.loads(base64.b64decode(env["payload"]))
+          if "slsa.dev/provenance" not in stmt.get("predicateType", ""):
+              sys.exit(f"unexpected predicateType {stmt.get('predicateType')!r}")
+          digests = {s.get("digest", {}).get("sha256") for s in stmt.get("subject", [])}
+          if want not in digests:
+              sys.exit(f"attestation subject {digests} does not cover {want}")
+          print(f"attestation OK: {stmt['predicateType']} covers sha256:{want}")
+          PY
 
       - name: Authenticate to GCP via WIF
         uses: google-github-actions/auth@v2
