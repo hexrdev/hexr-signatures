@@ -25,7 +25,13 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install yamllint
-      - run: yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" packs/
+      # Block scalar: the inline yamllint config contains ": " sequences, which
+      # YAML reads as mapping-value indicators inside a plain scalar. That made
+      # this whole workflow file unparseable, so `validate` failed at 0s on
+      # every push and PR since the repo was created — the pack gate (yamllint
+      # + schema + smoke) has never actually run. Fixed 2026-09-11.
+      - run: |
+          yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" packs/
 
   schema:
     runs-on: ubuntu-latest
