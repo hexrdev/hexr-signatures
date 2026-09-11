@@ -15,6 +15,10 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # Manual re-run. The gate consumes the LATEST PUBLISHED hexr-sdk wheel, so a
+  # green result can go stale when the SDK changes even though the packs did
+  # not — being able to re-run without an empty commit matters.
+  workflow_dispatch:
 
 jobs:
   yamllint:
