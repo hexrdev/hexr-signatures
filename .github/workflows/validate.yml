@@ -73,6 +73,14 @@ jobs:
 
   smoke:
     runs-on: ubuntu-latest
+    # Required for google-github-actions/auth: without id-token:write the job
+    # cannot mint an OIDC token and WIF fails with "GitHub Actions did not
+    # provide an OIDC token". No permissions block was declared at all, so the
+    # default (contents:read only) applied. Never surfaced because the whole
+    # file was unparseable and this job had never run. (2026-09-11)
+    permissions:
+      contents: read
+      id-token: write
     needs: [yamllint, schema]
     steps:
       - uses: actions/checkout@v4
